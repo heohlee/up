@@ -16,28 +16,70 @@ const (
 	productName = "up"
 )
 
-// All palette choices live here. Styles are immutable shared values; a future
-// theme can replace this palette without changing the view's layout.
-var theme = struct{ accent, dim, up, down, warn color.Color }{
-	accent: lipgloss.Color("#a78bfa"),
-	dim:    lipgloss.Color("#808080"),
-	up:     lipgloss.Color("#22c55e"),
-	down:   lipgloss.Color("#ef4444"),
-	warn:   lipgloss.Color("#f59e0b"),
+// palette is a theme: one foreground color per role. The terminal background
+// is always kept.
+type palette struct {
+	name, title                 string
+	accent, dim, up, down, warn color.Color
 }
 
+func newPalette(name, title, accent, dim, up, down, warn string) palette {
+	return palette{name, title, lipgloss.Color(accent), lipgloss.Color(dim), lipgloss.Color(up), lipgloss.Color(down), lipgloss.Color(warn)}
+}
+
+// All palette choices live here; the first one is the default. The others use
+// the public colors of their namesake schemes.
+var themes = []palette{
+	newPalette("default", "Default", "#a78bfa", "#808080", "#22c55e", "#ef4444", "#f59e0b"),
+	newPalette("dracula", "Dracula", "#bd93f9", "#6272a4", "#50fa7b", "#ff5555", "#ffb86c"),
+	newPalette("nord", "Nord", "#88c0d0", "#616e88", "#a3be8c", "#bf616a", "#ebcb8b"),
+	newPalette("gruvbox", "Gruvbox", "#83a598", "#928374", "#b8bb26", "#fb4934", "#fabd2f"),
+	newPalette("catppuccin", "Catppuccin", "#cba6f7", "#7f849c", "#a6e3a1", "#f38ba8", "#fab387"),
+}
+
+// Styles are shared values rebuilt only by applyTheme, which the model calls
+// when it starts and when the theme picker changes the theme.
 var (
-	accentStyle       = lipgloss.NewStyle().Foreground(theme.accent)
-	titleStyle        = accentStyle.Bold(true)
+	theme             palette
+	accentStyle       lipgloss.Style
+	titleStyle        lipgloss.Style
 	selectedNameStyle = lipgloss.NewStyle().Bold(true)
-	helpStyle         = lipgloss.NewStyle().Foreground(theme.dim)
-	headerStyle       = helpStyle.Bold(true)
-	upStyle           = lipgloss.NewStyle().Foreground(theme.up)
-	downStyle         = lipgloss.NewStyle().Foreground(theme.down).Bold(true)
-	slowStyle         = lipgloss.NewStyle().Foreground(theme.warn)
-	pendingStyle      = helpStyle
-	warnStyle         = lipgloss.NewStyle().Foreground(theme.warn).Bold(true)
+	helpStyle         lipgloss.Style
+	headerStyle       lipgloss.Style
+	upStyle           lipgloss.Style
+	downStyle         lipgloss.Style
+	slowStyle         lipgloss.Style
+	pendingStyle      lipgloss.Style
+	warnStyle         lipgloss.Style
 )
+
+func init() { applyTheme(themes[0].name) }
+
+// themeIndex is the position of the named theme, or 0 (default) when unknown.
+func themeIndex(name string) int {
+	for i, p := range themes {
+		if p.name == name {
+			return i
+		}
+	}
+	return 0
+}
+
+// applyTheme rebuilds every style from the named palette and returns the name
+// actually applied: unknown names select the default.
+func applyTheme(name string) string {
+	theme = themes[themeIndex(name)]
+	accentStyle = lipgloss.NewStyle().Foreground(theme.accent)
+	titleStyle = accentStyle.Bold(true)
+	helpStyle = lipgloss.NewStyle().Foreground(theme.dim)
+	headerStyle = helpStyle.Bold(true)
+	upStyle = lipgloss.NewStyle().Foreground(theme.up)
+	downStyle = lipgloss.NewStyle().Foreground(theme.down).Bold(true)
+	slowStyle = lipgloss.NewStyle().Foreground(theme.warn)
+	pendingStyle = helpStyle
+	warnStyle = lipgloss.NewStyle().Foreground(theme.warn).Bold(true)
+	return theme.name
+}
 
 func renderHelp(text string) string {
 	keys := map[string]bool{"↑/↓": true, "(k/j)": true, "enter": true, "n": true, "e": true, "d": true, "t": true, "space": true, "w": true, "m": true, "u": true, "s": true, "c": true, "a": true, "q": true, "ctrl+c": true, "esc": true, "tab": true, "tab/shift+tab": true, "←/→": true, "y": true, "v": true, "?": true}

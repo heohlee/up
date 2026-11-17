@@ -43,7 +43,7 @@ func renderModal(title string, body string, width, height int, minimum ...int) (
 }
 
 const popupWidth = 46
-const popupHeight = 16
+const popupHeight = 17
 
 func helpPopupFits(width, height int) bool {
 	return (width <= 0 || width >= popupWidth+2) && (height <= 0 || height >= popupHeight+2)
@@ -85,6 +85,7 @@ func renderHelpPopup(split bool, remote ...bool) string {
 		"",
 		headerStyle.Render("VIEW"),
 		row("a", "animation on/off", "", ""),
+		row("t", "theme", "", ""),
 		row("q", "quit", retryKey, retryDescription),
 		"",
 		accentStyle.Render("? or esc")+"  "+helpStyle.Render("close"),

@@ -623,7 +623,7 @@ func renderKeys(remote ...bool) string {
 		"",
 		headerStyle.Render("VIEW"),
 		"",
-		row("a", "animation on/off", "", ""),
+		row("a", "animation on/off", "t", "theme"),
 		row("q", "quit", retryKey, retryDescription),
 		"",
 		"  " + accentStyle.Render("? or esc") + "  " + helpStyle.Render("close"),
