@@ -28,14 +28,7 @@ func addMonitorTools(s *sdk.Server, b Backend, now func() time.Time) {
 		if err != nil {
 			return nil, writeResult{}, err
 		}
-		base := newMonitor(in.Name, snap.NewItemDefaults())
-		if in.Monitor.Kind != nil && *in.Monitor.Kind == config.CheckHeartbeat {
-			// A heartbeat runs nowhere, so it has no interval, timeout or
-			// expected status: the defaults supply only the fields every kind
-			// carries, as the new monitor form does when its type is switched.
-			base.Interval, base.Timeout, base.ExpectedStatus = 0, 0, 0
-		}
-		check, err := applySpec(base, in.Monitor, lazySealer(ctx, b))
+		check, err := applySpec(newMonitor(in.Name, valueOf(in.Monitor.Kind), snap.NewItemDefaults()), in.Monitor, lazySealer(ctx, b))
 		if err != nil {
 			return nil, writeResult{}, err
 		}
@@ -354,17 +347,25 @@ func namedWindow(ctx context.Context, b Backend, now func() time.Time, name, tag
 
 // newMonitor is the check a create starts from: the server's defaults for new
 // items, which is what the new monitor form of the terminal UI shows, with the
-// name already set so validation messages can carry it.
-func newMonitor(name string, d config.Defaults) config.Check {
-	return config.Check{
-		Name:           name,
-		Interval:       d.Interval,
-		Timeout:        d.Timeout,
-		ExpectedStatus: d.ExpectedStatus,
-		Channel:        d.Channel,
-		AlertAfter:     d.AlertAfter,
-		RecoverAfter:   d.RecoverAfter,
+// name already set so validation messages can carry it. Each kind takes only
+// the defaults it uses, as the form does when its type is switched: every kind
+// takes the channel and thresholds, every kind that runs a probe takes the
+// interval and timeout (a heartbeat runs nothing), and only HTTP takes the
+// expected status. Anything else would be rejected by config.ValidateCheck.
+func newMonitor(name, kind string, d config.Defaults) config.Check {
+	c := config.Check{
+		Name:         name,
+		Channel:      d.Channel,
+		AlertAfter:   d.AlertAfter,
+		RecoverAfter: d.RecoverAfter,
 	}
+	if kind != config.CheckHeartbeat {
+		c.Interval, c.Timeout = d.Interval, d.Timeout
+	}
+	if kind == "" || kind == config.CheckHTTP {
+		c.ExpectedStatus = d.ExpectedStatus
+	}
+	return c
 }
 
 // muteDuration reads a mute duration and checks its bounds, with the message

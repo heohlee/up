@@ -382,3 +382,40 @@ func TestAnUnknownWindowFails(t *testing.T) {
 		t.Errorf("reason = %q", reason)
 	}
 }
+
+// TestCreateMonitorOfEveryKindStartsFromItsDefaults proves a create fills only
+// the defaults its kind uses. Expected status belongs to HTTP alone, and
+// interval and timeout to every kind that runs a probe, so a TCP, ping or DNS
+// monitor with only its target must be accepted, as must a heartbeat.
+func TestCreateMonitorOfEveryKindStartsFromItsDefaults(t *testing.T) {
+	a := newAPI(t)
+	s := a.session()
+	defaults := config.BuiltinDefaults()
+	cases := []struct {
+		name string
+		spec monitorSpec
+	}{
+		{"tcp", monitorSpec{Kind: ptr(config.CheckTCP), Host: ptr("db.example.com"), Port: ptr(5432)}},
+		{"ping", monitorSpec{Kind: ptr(config.CheckPing), Host: ptr("192.0.2.1")}},
+		{"dns", monitorSpec{Kind: ptr(config.CheckDNS), Domain: ptr("example.com"), Record: ptr("A")}},
+		{"heartbeat", monitorSpec{Kind: ptr(config.CheckHeartbeat), Period: ptr("24h"), Grace: ptr("1h")}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if _, err := callTool[writeResult](t, s, "create_monitor", createMonitorInput{Name: c.name, Monitor: c.spec}); err != nil {
+				t.Fatalf("create %s: %v", c.name, err)
+			}
+			stored := a.storedCheck(c.name)
+			if stored.ExpectedStatus != 0 {
+				t.Errorf("expected status = %d, want 0 for %s", stored.ExpectedStatus, c.name)
+			}
+			probe := c.name != "heartbeat"
+			if probe && (stored.Interval != defaults.Interval || stored.Timeout != defaults.Timeout) {
+				t.Errorf("interval/timeout = %v/%v, want the defaults %v/%v", stored.Interval, stored.Timeout, defaults.Interval, defaults.Timeout)
+			}
+			if !probe && (stored.Interval != 0 || stored.Timeout != 0) {
+				t.Errorf("heartbeat interval/timeout = %v/%v, want none", stored.Interval, stored.Timeout)
+			}
+		})
+	}
+}

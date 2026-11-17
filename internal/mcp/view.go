@@ -482,7 +482,7 @@ func targetOf(c config.Check) string {
 		return target
 	case config.CheckHeartbeat:
 		if c.Schedule == config.ScheduleCron {
-			return "cron " + c.Cron + " · grace " + formatDuration(c.Grace)
+			return "cron " + c.Cron + " · grace " + config.ShortDuration(c.Grace)
 		}
 		return "every " + config.ShortDuration(c.Period) + " · grace " + config.ShortDuration(c.Grace)
 	default:
