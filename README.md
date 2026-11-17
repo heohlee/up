@@ -31,6 +31,7 @@ Self-hosted HTTP uptime monitor with a terminal UI. One binary and a SQLite file
 - **Recurring maintenance windows** that hold alerts and certificate warnings while checks and history continue.
 - **Tags** to group monitors, and mute them or give them maintenance windows together.
 - **Stale-daemon detection.** If the daemon stops, the TUI says so and keeps the last known statuses instead of marking everything DOWN.
+- **Agent access over MCP.** `up mcp` serves the [Model Context Protocol](https://modelcontextprotocol.io) on stdin, so an agent client can read and manage a remote server with tools.
 
 ## Install
 
@@ -114,6 +115,7 @@ go build -o up ./cmd/up
 up serve        # run checks and store results
 up tui          # view and manage monitors on this machine
 up tui --remote # manage a remote server (after up login)
+up mcp          # serve the MCP on stdin, for an agent client (after up login)
 ```
 
 The database is resolved in this order: `--db`, `$UP_DB`, `/var/lib/up/up.db` if it exists, `~/.config/up/up.db`. The TUI footer shows which one is open. New monitors start with a 30s interval, 5s timeout and expected status 200 until you change the defaults (`f`).
@@ -394,6 +396,52 @@ Bodies are strict JSON, limited to 1 MiB. Errors: `400` invalid input, `404` not
 - SMTP passwords, header values, request bodies, webhook URLs (Discord and Slack too), webhook auth values and push tokens are sealed with the server's public key; the API rejects plaintext values and never returns them or their ciphertext. The private key stays on the server. Edit forms show saved values as `set`, with keep, replace or clear.
 - The server stores a SHA-256 token hash and compares it in constant time. Token and remote credential files readable by others are refused.
 - The client does not follow redirects or forward the token to another host. Server text is stripped of terminal escape sequences before display. There is no certificate pinning.
+
+## Agent access (MCP)
+
+`up mcp` serves the [Model Context Protocol](https://modelcontextprotocol.io) on stdin and stdout, so an agent client can read and manage a server with tools. It runs on the machine where the agent runs and talks to the server saved by `up login`, through the same authenticated API as `up tui --remote`.
+
+1. On the server, enable the API: `up serve --api-listen :8080` (HTTPS recommended, see [Remote access](#remote-access)). The Docker setup already has it.
+2. On the agent's machine, [install the binary](#binary) and connect once:
+
+   ```sh
+   up login --url https://up.example.com
+   ```
+
+3. Register `up mcp` in the client:
+
+| Client | Register |
+|---|---|
+| Pi | `pi mcp add up -- up mcp` |
+| Claude Code | `claude mcp add --scope user up -- up mcp` |
+| Codex | `codex mcp add up -- up mcp` |
+| Claude Desktop, Cursor and other `mcpServers` clients | the JSON entry below, in the client's config file (Cursor: `~/.cursor/mcp.json`) |
+| VS Code | the same entry under `"servers"` instead of `"mcpServers"`, in `.vscode/mcp.json` |
+
+```json
+{
+  "mcpServers": {
+    "up": { "command": "/usr/local/bin/up", "args": ["mcp"] }
+  }
+}
+```
+
+Desktop apps often start without your shell's `PATH`, so give them the full path to the binary (`/usr/local/bin/up` with the default install, or your `UP_INSTALL_DIR`). The client starts `up mcp` as the same user who ran `up login`, so it finds the saved remote in `~/.config/up/remote.json`.
+
+Nothing prompts: stdin carries the protocol, so the credentials must already be saved, and a missing remote is the error `no saved remote; run 'up login'`, which the client shows from the server's log. No token goes in the client's config, and `up token reset` with `up login` renews it without touching that config. There is no OAuth, because up has one bearer token and no authorization server.
+
+### Tools
+
+Five tools read (the monitor list, one monitor with its incidents, deliveries, defaults, daemon status) and the rest write (monitors, mutes, tag mutes, maintenance windows, channels, SMTP servers, defaults, channel tests, heartbeat ping tokens). Status words are the ones the TUI shows: `UP`, `DOWN`, `PENDING`, `WAITING`, `FAILING n/N`, `RECOVERING n/M`.
+
+Writes follow the TUI's rules, not a separate contract:
+
+- **Sealed values are never returned.** A header value, request body, SMTP password, webhook URL or token reads as `set`; a write changes it with `edit: replace` and the value, or `edit: clear`, and leaving it out keeps it.
+- **Deletes need `confirm: true`**, as does `rotate_heartbeat_token`: history or a stored secret is gone and cannot be read back.
+- **A maintenance window belongs to one owner.** Naming a monitor never reaches a window of one of its tags, and naming a tag never reaches a monitor's own window: the wrong owner is refused instead of ending the hold of monitors the call never named.
+- **A rejected write changes nothing.** The server validates; the tool returns its reason.
+
+**Secrets and the model.** A secret passed as a tool argument travels through the model's context and the client's logs; setting it in `up tui` keeps it out of both. A heartbeat ping token is a credential too: `get_heartbeat_token` and `rotate_heartbeat_token` reveal it on purpose, because only the server's own stores hold it; it records pings for one monitor and grants nothing else.
 
 ## Configuration
 
