@@ -399,24 +399,36 @@ Bodies are strict JSON, limited to 1 MiB. Errors: `400` invalid input, `404` not
 
 ## Agent access (MCP)
 
-`up mcp` serves the [Model Context Protocol](https://modelcontextprotocol.io) on stdin and stdout. It talks to the remote saved by `up login`, through the same authenticated API as `up tui --remote`, so the server needs `--api-listen`:
+`up mcp` serves the [Model Context Protocol](https://modelcontextprotocol.io) on stdin and stdout, so an agent client can read and manage a server with tools. It runs on the machine where the agent runs and talks to the server saved by `up login`, through the same authenticated API as `up tui --remote`.
 
-```sh
-up login --url https://up.example.com
-pi mcp add up -- up mcp
-```
+1. On the server, enable the API: `up serve --api-listen :8080` (HTTPS recommended, see [Remote access](#remote-access)). The Docker setup already has it.
+2. On the agent's machine, [install the binary](#binary) and connect once:
 
-Another client registers the same entry in its own `mcpServers` format:
+   ```sh
+   up login --url https://up.example.com
+   ```
+
+3. Register `up mcp` in the client:
+
+| Client | Register |
+|---|---|
+| Pi | `pi mcp add up -- up mcp` |
+| Claude Code | `claude mcp add --scope user up -- up mcp` |
+| Codex | `codex mcp add up -- up mcp` |
+| Claude Desktop, Cursor and other `mcpServers` clients | the JSON entry below, in the client's config file (Cursor: `~/.cursor/mcp.json`) |
+| VS Code | the same entry under `"servers"` instead of `"mcpServers"`, in `.vscode/mcp.json` |
 
 ```json
 {
   "mcpServers": {
-    "up": { "command": "up", "args": ["mcp"] }
+    "up": { "command": "/usr/local/bin/up", "args": ["mcp"] }
   }
 }
 ```
 
-Nothing prompts: stdin carries the protocol, so the credentials must already be saved, and a missing remote is the error `no saved remote; run 'up login'`. No token goes in the client's config, and `up token reset` with `up login` renews it without touching that config. There is no OAuth, because up has one bearer token and no authorization server.
+Desktop apps often start without your shell's `PATH`, so give them the full path to the binary (`/usr/local/bin/up` with the default install, or your `UP_INSTALL_DIR`). The client starts `up mcp` as the same user who ran `up login`, so it finds the saved remote in `~/.config/up/remote.json`.
+
+Nothing prompts: stdin carries the protocol, so the credentials must already be saved, and a missing remote is the error `no saved remote; run 'up login'`, which the client shows from the server's log. No token goes in the client's config, and `up token reset` with `up login` renews it without touching that config. There is no OAuth, because up has one bearer token and no authorization server.
 
 ### Tools
 
