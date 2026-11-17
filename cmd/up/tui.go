@@ -45,7 +45,7 @@ Delete: y delete · n cancel · esc cancel · ctrl+c quit
 
 Use --remote or UP_REMOTE=true to connect to the remote saved by 'up login'.
 In remote mode, r retry reloads immediately.
-t opens the theme picker (Default, Dracula, Nord, Gruvbox, Catppuccin); ↑/↓ previews, enter saves it to <config>/up/tui.json for local and remote sessions, esc keeps the current theme.
+t opens the theme picker (Default, Dracula, Nord, Gruvbox, Catppuccin, Tokyo Night, One Dark, Solarized, Monokai, Rosé Pine, Kanagawa, Everforest, Ayu); ↑/↓ previews, enter saves it to <config>/up/tui.json for local and remote sessions, esc keeps the current theme.
 
 Flags:
 `

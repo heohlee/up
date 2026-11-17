@@ -35,6 +35,14 @@ var themes = []palette{
 	newPalette("nord", "Nord", "#88c0d0", "#616e88", "#a3be8c", "#bf616a", "#ebcb8b"),
 	newPalette("gruvbox", "Gruvbox", "#83a598", "#928374", "#b8bb26", "#fb4934", "#fabd2f"),
 	newPalette("catppuccin", "Catppuccin", "#cba6f7", "#7f849c", "#a6e3a1", "#f38ba8", "#fab387"),
+	newPalette("tokyo-night", "Tokyo Night", "#7aa2f7", "#565f89", "#9ece6a", "#f7768e", "#e0af68"),
+	newPalette("one-dark", "One Dark", "#61afef", "#5c6370", "#98c379", "#e06c75", "#e5c07b"),
+	newPalette("solarized", "Solarized", "#268bd2", "#586e75", "#859900", "#dc322f", "#b58900"),
+	newPalette("monokai", "Monokai", "#ae81ff", "#75715e", "#a6e22e", "#f92672", "#e6db74"),
+	newPalette("rose-pine", "Rosé Pine", "#c4a7e7", "#6e6a86", "#9ccfd8", "#eb6f92", "#f6c177"),
+	newPalette("kanagawa", "Kanagawa", "#7e9cd8", "#727169", "#98bb6c", "#e82424", "#ff9e3b"),
+	newPalette("everforest", "Everforest", "#d699b6", "#859289", "#a7c080", "#e67e80", "#dbbc7f"),
+	newPalette("ayu", "Ayu", "#39bae6", "#6c7380", "#aad94c", "#f07178", "#ffb454"),
 }
 
 // Styles are shared values rebuilt only by applyTheme, which the model calls
@@ -42,6 +50,7 @@ var themes = []palette{
 var (
 	theme             palette
 	accentStyle       lipgloss.Style
+	borderStyle       lipgloss.Style // popup borders and divider lines
 	titleStyle        lipgloss.Style
 	selectedNameStyle = lipgloss.NewStyle().Bold(true)
 	helpStyle         lipgloss.Style
@@ -70,6 +79,7 @@ func themeIndex(name string) int {
 func applyTheme(name string) string {
 	theme = themes[themeIndex(name)]
 	accentStyle = lipgloss.NewStyle().Foreground(theme.accent)
+	borderStyle = accentStyle
 	titleStyle = accentStyle.Bold(true)
 	helpStyle = lipgloss.NewStyle().Foreground(theme.dim)
 	headerStyle = helpStyle.Bold(true)
@@ -109,13 +119,13 @@ func renderRule(width, position int) string {
 
 func renderRuleCells(cells, position int) string {
 	length := cells - 1
-	stem := accentStyle.Render(logoStem)
+	stem := borderStyle.Render(logoStem)
 	if position < 0 || position >= length {
-		return stem + helpStyle.Render(strings.Repeat("─", length))
+		return stem + borderStyle.Render(strings.Repeat("─", length))
 	}
 	pulse := []rune("╱╲╱")[:min(3, length-position)]
-	return stem + helpStyle.Render(strings.Repeat("─", position)) +
-		accentStyle.Render(string(pulse)) + helpStyle.Render(strings.Repeat("─", length-position-len(pulse)))
+	return stem + borderStyle.Render(strings.Repeat("─", position)) +
+		accentStyle.Render(string(pulse)) + borderStyle.Render(strings.Repeat("─", length-position-len(pulse)))
 }
 
 // renderHostRule keeps every label cell intact while the pulse lights it.
@@ -145,7 +155,7 @@ func renderHostRuleCells(snap Snapshot, hostname string, now time.Time, cells, p
 		return renderRuleCells(cells, position)
 	}
 	var b strings.Builder
-	b.WriteString(accentStyle.Render(logoStem))
+	b.WriteString(borderStyle.Render(logoStem))
 	cell := 1
 	write := func(text string, style lipgloss.Style, rule bool) {
 		if position < 0 {
@@ -167,9 +177,9 @@ func renderHostRuleCells(snap Snapshot, hostname string, now time.Time, cells, p
 			cell += w
 		}
 	}
-	write("─", helpStyle, true)
+	write("─", borderStyle, true)
 	write(label, helpStyle, false)
-	write(strings.Repeat("─", max(0, cells-cell)), helpStyle, true)
+	write(strings.Repeat("─", max(0, cells-cell)), borderStyle, true)
 	return b.String()
 }
 

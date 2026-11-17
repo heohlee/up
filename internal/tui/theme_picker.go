@@ -10,6 +10,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // themePrefs is the content of the theme file.
@@ -141,7 +142,7 @@ func renderThemePicker(p themePicker) string {
 		} {
 			swatch.WriteString(c.Render("●"))
 		}
-		lines = append(lines, fmt.Sprintf("%s%s%s%s", marker, name, strings.Repeat(" ", 12-len(t.title)), swatch.String()))
+		lines = append(lines, fmt.Sprintf("%s%s%s%s", marker, name, strings.Repeat(" ", 13-ansi.StringWidth(t.title)), swatch.String()))
 	}
 	lines = append(lines, "", renderHelp("↑/↓ choose · enter save · esc cancel"))
 	return strings.Join(lines, "\n")

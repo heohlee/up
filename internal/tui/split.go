@@ -127,9 +127,9 @@ func renderSplit(snap Snapshot, selected int, now time.Time, loadErr error, widt
 		if i < len(right) {
 			r = ansi.Truncate(right[i], rightWidth, "")
 		}
-		b.WriteString(l + strings.Repeat(" ", leftWidth-ansi.StringWidth(l)) + helpStyle.Render(" │ ") + r + "\n")
+		b.WriteString(l + strings.Repeat(" ", leftWidth-ansi.StringWidth(l)) + borderStyle.Render(" │ ") + r + "\n")
 	}
-	b.WriteString(helpStyle.Render(strings.Repeat("─", width)) + "\n")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", width)) + "\n")
 	b.WriteString(headerStyle.Render("ACTIVITY") + "\n")
 	for _, event := range events {
 		glyph := downStyle.Render("●")

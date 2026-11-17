@@ -1,12 +1,14 @@
 package tui
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -39,7 +41,7 @@ func TestThemePickerPreviewsSavesAndReloads(t *testing.T) {
 	m := themedModel(t, file)
 	m, _ = press(t, m, keyT)
 	screen := view(m)
-	for _, want := range []string{"Theme", "Default", "Dracula", "Nord", "Gruvbox", "Catppuccin", "enter save", "esc cancel"} {
+	for _, want := range []string{"Theme", "Default", "Dracula", "Nord", "Gruvbox", "Catppuccin", "Tokyo Night", "One Dark", "Solarized", "Monokai", "Rosé Pine", "Kanagawa", "Everforest", "Ayu", "enter save", "esc cancel"} {
 		if !strings.Contains(screen, want) {
 			t.Fatalf("picker lacks %q:\n%s", want, screen)
 		}
@@ -106,7 +108,7 @@ func TestThemeEscRestoresAndSavesNothing(t *testing.T) {
 }
 
 func TestThemeFileUnknownOrMalformedFallsBackToDefault(t *testing.T) {
-	for _, content := range []string{`{"theme":"solarized"}`, `not json`, ``} {
+	for _, content := range []string{`{"theme":"vaporwave"}`, `not json`, ``} {
 		file := filepath.Join(t.TempDir(), "tui.json")
 		if err := os.WriteFile(file, []byte(content), 0o600); err != nil {
 			t.Fatal(err)
@@ -147,4 +149,53 @@ func TestHelpListsThemeKey(t *testing.T) {
 			t.Errorf("help lacks %q:\n%s", want, ansi.Strip(text))
 		}
 	}
+}
+
+func TestEveryThemeIsDistinctAndSelectable(t *testing.T) {
+	seen := map[string]string{}
+	for _, p := range themes {
+		key := fmt.Sprint(p.accent, p.dim, p.up, p.down, p.warn)
+		if other, ok := seen[key]; ok {
+			t.Errorf("%s repeats the palette of %s", p.name, other)
+		}
+		seen[key] = p.name
+	}
+	file := filepath.Join(t.TempDir(), "tui.json")
+	m := themedModel(t, file)
+	m, cmd := press(t, m, keyT, keyUp, keyEnter)
+	next, _ := m.Update(cmd())
+	if !strings.Contains(view(next.(Model)), "✓ Theme: Ayu") {
+		t.Fatalf("up from Default did not wrap to the last theme:\n%s", view(next.(Model)))
+	}
+	themedModel(t, file)
+	if got, want := accentStyle.Render("x"), fg("#39bae6"); got != want {
+		t.Fatalf("reloaded accent = %q, want ayu %q", got, want)
+	}
+}
+
+func TestDividersUseThePopupBorderColor(t *testing.T) {
+	for _, name := range []string{"default", "nord"} {
+		applyTheme(name)
+		border := accentStyle
+		if got, want := renderRule(20, -1), border.Render(logoStem)+border.Render(strings.Repeat("─", 19)); got != want {
+			t.Errorf("%s rule = %q, want %q", name, got, want)
+		}
+		if got := renderHostRuleCells(Snapshot{}, "host", now, 20, -1); !strings.Contains(got, border.Render("─")) || !strings.Contains(got, helpStyle.Render(" host ")) {
+			t.Errorf("%s host rule = %q", name, got)
+		}
+		m := themedModel(t, filepath.Join(t.TempDir(), "t.json"))
+		applyTheme(name)
+		next, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
+		screen := next.(Model).View().Content
+		color, _, _ := strings.Cut(border.Render("x"), "x")
+		for _, want := range []string{border.Render(" │ "), color + strings.Repeat("─", 40)} {
+			if !strings.Contains(screen, want) {
+				t.Errorf("%s split view lacks divider %q", name, want)
+			}
+		}
+		if !strings.HasPrefix(renderHelpPopup(false), color+"╭─ keys ") {
+			t.Errorf("%s popup border changed color", name)
+		}
+	}
+	applyTheme("default")
 }
