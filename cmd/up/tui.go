@@ -38,13 +38,14 @@ Manage SMTP servers and channels for email alerts with s and c; choose a monitor
 SMTP passwords are encrypted with the key that 'up serve' keeps in <db>.key; run it once before entering a password, and back up that file with the database.
 Channels are email, webhook (a generic JSON POST), ntfy, telegram, discord, slack or gotify; webhook URLs, auth values and tokens use the same key and are never shown again.
 
-Keys: ↑/↓ or k/j select · enter details (small terminals) · n new monitor · e edit · d delete · s SMTP servers · c channels · v ping URL (heartbeats) · a toggle animation · ? all keys · esc back · q/ctrl+c quit
+Keys: ↑/↓ or k/j select · enter details (small terminals) · n new monitor · e edit · d delete · s SMTP servers · c channels · v ping URL (heartbeats) · a toggle animation · t theme · ? all keys · esc back · q/ctrl+c quit
 Terminals of at least 110x30 show the selected monitor's detail beside the list, with an activity feed below; enter is not needed there.
 Form: tab/shift+tab focus · ←/→ choose (Type, Schedule, Record, Channel, thresholds, Token) · enter save · esc cancel · ctrl+c quit
 Delete: y delete · n cancel · esc cancel · ctrl+c quit
 
 Use --remote or UP_REMOTE=true to connect to the remote saved by 'up login'.
 In remote mode, r retry reloads immediately.
+t opens the theme picker (Default, Dracula, Nord, Gruvbox, Catppuccin, Tokyo Night, One Dark, Solarized, Monokai, Rosé Pine, Kanagawa, Everforest, Ayu); ↑/↓ previews, enter saves it to <config>/up/tui.json for local and remote sessions, esc keeps the current theme.
 
 Flags:
 `
@@ -83,7 +84,7 @@ func runTUI(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			return 1
 		}
 		u, _ := url.Parse(profile.ServerURL)
-		if err := runRemoteTUIProgram(ctx, client.New(profile.ServerURL, profile.Token), tui.Options{Destination: profile.ServerURL, Hostname: u.Host}); err != nil {
+		if err := runRemoteTUIProgram(ctx, client.New(profile.ServerURL, profile.Token), tui.Options{Destination: profile.ServerURL, Hostname: u.Host, ThemeFile: tui.DefaultThemeFile()}); err != nil {
 			fmt.Fprintf(stderr, "up: %v\n", err)
 			return 1
 		}
@@ -106,7 +107,7 @@ func runTUI(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		hostname = ""
 	}
-	if err := runTUIProgram(ctx, s, tui.Options{DatabasePath: *dbPath, Hostname: hostname}); err != nil {
+	if err := runTUIProgram(ctx, s, tui.Options{DatabasePath: *dbPath, Hostname: hostname, ThemeFile: tui.DefaultThemeFile()}); err != nil {
 		fmt.Fprintf(stderr, "up: %v\n", err)
 		return 1
 	}

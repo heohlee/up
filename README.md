@@ -122,7 +122,7 @@ The database is resolved in this order: `--db`, `$UP_DB`, `/var/lib/up/up.db` if
 
 ### Keys
 
-`j`/`k` move · `/` search (the footer becomes the prompt · `#` lists the tags and `#nas` shows the monitors tagged `nas` · `tab` status: all, down, failing, held · `enter` keep · `esc` clear) · `enter` details · `n` new · `e` edit · `y` duplicate · `d` delete · `m` mute · `u` unmute · `w` maintenance windows · `s` mail servers · `c` channels · `f` defaults · `v` ping URL (heartbeat detail) · `a` animation · `r` retry now (remote) · `esc` back · `q` quit.
+`j`/`k` move · `/` search (the footer becomes the prompt · `#` lists the tags and `#nas` shows the monitors tagged `nas` · `tab` status: all, down, failing, held · `enter` keep · `esc` clear) · `enter` details · `n` new · `e` edit · `y` duplicate · `d` delete · `m` mute · `u` unmute · `w` maintenance windows · `s` mail servers · `c` channels · `f` defaults · `v` ping URL (heartbeat detail) · `a` animation · `t` theme (Default, Dracula, Nord, Gruvbox, Catppuccin, Tokyo Night, One Dark, Solarized, Monokai, Rosé Pine, Kanagawa, Everforest or Ayu, previewed live and remembered in `~/.config/up/tui.json`) · `r` retry now (remote) · `esc` back · `q` quit.
 
 `y` opens the new monitor form filled from the selected monitor, named `<name> copy`. Headers and body stay sealed (`set`, with keep, replace or clear), and history, mute and maintenance windows are not copied. Nothing is saved until `enter`.
 

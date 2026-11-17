@@ -33,7 +33,7 @@ func renderModal(title string, body string, width, height int, minimum ...int) (
 	if (width > 0 && boxWidth+2 > width) || (height > 0 && len(lines)+4 > height) {
 		return "", false
 	}
-	border := func(s string) string { return accentStyle.Render(s) }
+	border := func(s string) string { return borderStyle.Render(s) }
 	out := []string{border("╭─ " + title + " " + strings.Repeat("─", boxWidth-ansi.StringWidth(title)-5) + "╮")}
 	for _, line := range lines {
 		out = append(out, border("│")+" "+line+strings.Repeat(" ", boxWidth-3-ansi.StringWidth(line))+border("│"))
@@ -43,7 +43,7 @@ func renderModal(title string, body string, width, height int, minimum ...int) (
 }
 
 const popupWidth = 46
-const popupHeight = 16
+const popupHeight = 17
 
 func helpPopupFits(width, height int) bool {
 	return (width <= 0 || width >= popupWidth+2) && (height <= 0 || height >= popupHeight+2)
@@ -85,11 +85,12 @@ func renderHelpPopup(split bool, remote ...bool) string {
 		"",
 		headerStyle.Render("VIEW"),
 		row("a", "animation on/off", "", ""),
+		row("t", "theme", "", ""),
 		row("q", "quit", retryKey, retryDescription),
 		"",
 		accentStyle.Render("? or esc")+"  "+helpStyle.Render("close"),
 	)
-	border := func(s string) string { return accentStyle.Render(s) }
+	border := func(s string) string { return borderStyle.Render(s) }
 	out := []string{border("╭─ keys " + strings.Repeat("─", popupWidth-9) + "╮")}
 	for _, line := range lines {
 		out = append(out, border("│")+" "+line+strings.Repeat(" ", popupWidth-3-ansi.StringWidth(line))+border("│"))

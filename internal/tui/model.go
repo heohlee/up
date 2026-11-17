@@ -69,6 +69,9 @@ type Model struct {
 	defaults          *defaultsPopup
 	notice            string
 	noticeOK          bool // notice is a confirmation, not a warning
+	theme             string
+	themeFile         string
+	themePicker       *themePicker
 	notify            bool // the notifications view is open, on notifyTab
 	notifyTab         int
 	deliveries        deliveryFilter
@@ -172,6 +175,9 @@ type Options struct {
 	// instead of the database path, so a remote session is never mistaken
 	// for the local one.
 	Destination string
+	// ThemeFile remembers the chosen theme; empty keeps the default theme
+	// and saving reports an error.
+	ThemeFile string
 }
 
 // New returns a model reading from s; now is the clock used for ages and
@@ -182,7 +188,9 @@ func New(s Store, now func() time.Time, options ...Options) Model {
 		m.databasePath = options[0].DatabasePath
 		m.destination = options[0].Destination
 		m.hostname = options[0].Hostname
+		m.themeFile = options[0].ThemeFile
 	}
+	m.theme = applyTheme(loadTheme(m.themeFile))
 	return m
 }
 
@@ -481,6 +489,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.form = &f
 		}
 		return m, nil
+	case themeSavedMsg:
+		return m.themeSaved(msg), nil
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 	}
@@ -525,6 +535,9 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.defaults != nil {
 		return m.handleDefaultsKey(msg)
 	}
+	if m.themePicker != nil {
+		return m.handleThemeKey(msg)
+	}
 	m.notice, m.noticeOK = "", false
 	if m.help {
 		if key := msg.String(); key == "?" || key == "esc" {
@@ -567,6 +580,8 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 	case "f":
 		m.defaults = newDefaultsPopup(m.snap)
+	case "t":
+		m = m.openThemePicker()
 	case "e", "d":
 		if m.hasSelection() {
 			c := m.snap.Services[m.selected].Check
@@ -696,13 +711,15 @@ func (m Model) View() tea.View {
 		content, split = m.renderNotifications(now), false
 	}
 	modal := ""
-	if m.form != nil || m.deletion != nil || m.mute != nil || m.unmuteTagPrompt != nil || m.maint != nil || m.defaults != nil || m.pingError != nil {
+	if m.form != nil || m.deletion != nil || m.mute != nil || m.unmuteTagPrompt != nil || m.maint != nil || m.defaults != nil || m.themePicker != nil || m.pingError != nil {
 		screen, minimum := "", 0
 		switch {
 		case m.pingError != nil:
 			screen = renderPingError(*m.pingError, m.width)
 		case m.form != nil && m.form.pingToken != "":
 			screen = renderPingURLScreen(*m.form, m.snap, m.pingBase(), m.width)
+		case m.themePicker != nil:
+			screen = renderThemePicker(*m.themePicker)
 		case m.defaults != nil:
 			screen = renderDefaults(*m.defaults, m.snap, now, m.err)
 			minimum = defaultsMinWidth(*m.defaults, m.snap, now, m.err)

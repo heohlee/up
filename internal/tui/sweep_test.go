@@ -17,7 +17,7 @@ func TestSweepRule(t *testing.T) {
 			cells = 60
 		}
 		cells = min(80, max(20, cells))
-		flat := accentStyle.Render(logoStem) + helpStyle.Render(strings.Repeat("─", cells-1))
+		flat := borderStyle.Render(logoStem) + borderStyle.Render(strings.Repeat("─", cells-1))
 		if got := renderRule(width, -1); got != flat {
 			t.Fatalf("idle width %d: %q != %q", width, got, flat)
 		}
